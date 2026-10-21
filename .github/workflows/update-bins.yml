@@ -1,0 +1,52 @@
+name: Update bin days
+
+on:
+  schedule:
+    - cron: '30 4 * * *'   # every night at 04:30 UTC
+  workflow_dispatch:        # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download council data and pick out our collections
+        env:
+          PREMISES_ID: ${{ secrets.PREMISES_ID }}
+        run: |
+          curl -fsSL --retry 3 -o jobs.csv https://opendata.leeds.gov.uk/downloads/bins/dm_jobs.csv
+          python3 - <<'EOF'
+          import json, os, datetime
+          pid = os.environ['PREMISES_ID'].strip()
+          days = {}
+          with open('jobs.csv', encoding='latin-1') as f:
+              for line in f:
+                  parts = line.replace('\x00', '').strip().split(',')
+                  if len(parts) < 3 or parts[0].strip() != pid:
+                      continue
+                  colour = parts[1].strip().lower()
+                  date = datetime.datetime.strptime(parts[2].strip(), '%d/%m/%y').date().isoformat()
+                  days.setdefault(date, set()).add(colour)
+          if not days:
+              raise SystemExit('No collections found for this property - keeping the old file')
+          out = {
+              'updated': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
+              'collections': [{'date': d, 'bins': sorted(days[d])} for d in sorted(days)],
+          }
+          with open('bins.json', 'w') as f:
+              json.dump(out, f, indent=1)
+          print(f"Saved {len(days)} collection days")
+          EOF
+          rm jobs.csv
+
+      - name: Save the new dates
+        run: |
+          git config user.name "bin-bot"
+          git config user.email "bin-bot@users.noreply.github.com"
+          git add bins.json
+          git diff --cached --quiet || git commit -m "Update bin days"
+          git push
