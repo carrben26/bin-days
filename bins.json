@@ -1,13 +1,6 @@
 {
- "updated": "2026-10-26 05:08 UTC",
+ "updated": "2026-10-27 05:04 UTC",
  "collections": [
-  {
-   "date": "2026-10-21",
-   "bins": [
-    "black",
-    "brown"
-   ]
-  },
   {
    "date": "2026-10-28",
    "bins": [
@@ -80,6 +73,12 @@
    "date": "2027-01-13",
    "bins": [
     "black"
+   ]
+  },
+  {
+   "date": "2027-01-20",
+   "bins": [
+    "green"
    ]
   }
  ]
